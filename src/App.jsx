@@ -2,6 +2,14 @@ import { useEffect, useState } from "react";
 import GameCard from "./components/GameCard";
 import StoreFilter from "./components/StoreFilter";
 
+// Ícones atualizados
+const ICONS = {
+  Steam: "https://upload.wikimedia.org/wikipedia/commons/8/83/Steam_icon_logo.svg",
+  Epic: "https://upload.wikimedia.org/wikipedia/commons/3/33/Epic_Games_logo.svg",
+  PlayStation: "https://upload.wikimedia.org/wikipedia/commons/0/00/PlayStation_logo.svg",
+  Xbox: "https://upload.wikimedia.org/wikipedia/commons/f/f9/Xbox_one_logo.svg"
+};
+
 export default function App() {
   const [games, setGames] = useState([]);
   const [filter, setFilter] = useState("Todos");
@@ -10,130 +18,98 @@ export default function App() {
   useEffect(() => {
     async function loadData() {
       try {
-        console.log("🔄 Buscando dados...");
-        
-        // Buscando dados das duas rotas
-        const [epicRes, steamRes] = await Promise.all([
-          fetch("http://localhost:3333/api/epic"),
-          fetch("http://localhost:3333/api/steam")
+        setLoading(true);
+        // Busca tudo em paralelo
+        const [pcData, epicFreeData, consoleData] = await Promise.all([
+          fetch("http://localhost:3333/api/pc").then(r => r.json()),
+          fetch("http://localhost:3333/api/epic-free").then(r => r.json()),
+          fetch("http://localhost:3333/api/console").then(r => r.json())
         ]);
 
-        const epicList = await epicRes.json();
-        const steamList = await steamRes.json();
+        const cleanPrice = (val) => {
+            if (typeof val === 'string') return val === "N/A" ? 0 : parseFloat(val.replace('$', '').replace('R$', '').replace(',', '.'));
+            return val;
+        };
 
-        console.log("📦 Dados Epic recebidos:", epicList);
-        console.log("📦 Dados Steam recebidos:", steamList);
-
-        // --- Mapeamento da Epic ---
-        const epicGames = epicList.map(g => ({
-          id: `epic-${g.id}`, // Prefixo para evitar IDs duplicados
-          title: g.title,
-          imageUrl: g.image,
-          originalPrice: g.worth, 
-          currentPrice: g.price,   
-          link: g.link,
-          expiryDate: g.end_date,
-          store: "Epic",
-          storeIcon: "https://cdn.simpleicons.org/epicgames/white",
-          isFree: true, 
+        const allGames = [...pcData, ...epicFreeData, ...consoleData].map(game => ({
+          ...game,
+          id: game.id || Math.random().toString(),
+          imageUrl: game.image,
+          storeIcon: ICONS[game.store] || ICONS.Steam,
+          originalPrice: cleanPrice(game.worth),
+          currentPrice: cleanPrice(game.price),
+          isFree: cleanPrice(game.price) === 0
         }));
 
-        // --- Mapeamento da Steam ---
-        const steamGames = steamList.map(g => {
-            // O Backend já manda "Grátis" ou o valor. 
-            // Vamos garantir que a flag isFree seja verdadeira se o texto for Grátis ou R$ 0,00
-            const priceText = g.price || "";
-            const isFreeGame = priceText.includes("Grátis") || priceText === "R$ 0,00";
-
-            return {
-                id: `steam-${g.id}`, // Prefixo para evitar IDs duplicados
-                title: g.title,
-                // O backend manda 'image', o componente quer 'imageUrl'
-                imageUrl: g.image, 
-                originalPrice: g.worth,
-                currentPrice: g.price, 
-                link: g.link,
-                expiryDate: null,
-                store: "Steam",
-                storeIcon: "https://cdn.simpleicons.org/steam/white",
-                isFree: isFreeGame, 
-            };
-        });
-
-        // Junta tudo
-        const allGames = [...epicGames, ...steamGames];
-        console.log("✅ Lista final processada:", allGames);
-        
-        setGames(allGames);
+        // Remove duplicatas pelo título
+        const uniqueGames = allGames.filter((v, i, a) => a.findIndex(t => (t.title === v.title)) === i);
+        setGames(uniqueGames);
       } catch (err) {
-        console.error("❌ Erro ao carregar jogos:", err);
+        console.error("Erro:", err);
       } finally {
         setLoading(false);
       }
     }
-
     loadData();
   }, []);
 
-  const filtered =
-    filter === "Todos" ? games : games.filter(g => g.store === filter);
-
-  // Separação visual
+  const filtered = filter === "Todos" ? games : games.filter(g => g.store === filter);
   const freeGames = filtered.filter(g => g.isFree);
   const promoGames = filtered.filter(g => !g.isFree);
 
   return (
-    <div className="fixed inset-0 bg-zinc-900 text-white p-4">
-      <h1 className="text-2xl font-bold mb-4">🎮 Game Deals</h1>
+    // NOVO FUNDO: Gradiente Radial Gamer (Roxo Escuro para Preto)
+    <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900 via-gray-900 to-black text-white p-4 overflow-hidden font-sans">
+      
+      {/* Efeito de Luz de Fundo (Glow) */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-purple-600/20 blur-[100px] rounded-full pointer-events-none" />
 
-      <StoreFilter value={filter} onChange={setFilter} />
+      <header className="relative z-10 mb-6 flex flex-col md:flex-row items-center justify-between gap-4 backdrop-blur-md bg-white/5 p-4 rounded-2xl border border-white/10 shadow-xl">
+        <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600 flex items-center gap-2">
+          🎮 Game Deals <span className="text-xs text-white bg-purple-600 px-2 py-0.5 rounded shadow-lg">Hub</span>
+        </h1>
+        <StoreFilter 
+            value={filter} 
+            onChange={setFilter} 
+            stores={["Todos", "Steam", "Epic", "PlayStation", "Xbox"]}
+        />
+      </header>
 
       {loading ? (
-        <div className="flex justify-center mt-20 text-zinc-500 animate-pulse">
-           Carregando ofertas...
+        <div className="flex flex-col items-center justify-center h-full pb-20 gap-4">
+          <div className="w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-purple-300 animate-pulse">Buscando melhores ofertas...</p>
         </div>
       ) : (
-        <div className="overflow-y-auto h-[calc(100%-6rem)] pb-10">
+        <div className="relative z-10 overflow-y-auto h-[calc(100%-7rem)] pb-20 pr-2 custom-scrollbar">
           
-          {/* --- SEÇÃO ROXA: JOGOS GRÁTIS --- */}
           {freeGames.length > 0 && (
-            <>
-              <h2 className="text-xl font-semibold mb-2 mt-2 flex items-center gap-2 text-purple-300">
-                🟣 Jogos Grátis 
-                <span className="text-xs bg-purple-600 text-white px-2 py-0.5 rounded-full">
-                  {freeGames.length}
-                </span>
+            <section className="mb-10">
+              <h2 className="text-2xl font-bold mb-4 flex items-center gap-2 text-purple-200">
+                ✨ Grátis para Resgatar
+                <span className="text-xs bg-purple-500/20 text-purple-300 border border-purple-500/50 px-2 py-0.5 rounded-full">{freeGames.length}</span>
               </h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
-                {freeGames.map(game => (
-                  <GameCard key={game.id} {...game} />
-                ))}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                {freeGames.map(game => <GameCard key={game.id} {...game} />)}
               </div>
-            </>
+            </section>
           )}
 
-          {/* --- SEÇÃO AZUL: PROMOÇÕES PAGAS --- */}
           {promoGames.length > 0 && (
-            <>
-              <h2 className="text-xl font-semibold mb-2 mt-2 flex items-center gap-2 text-blue-300">
-                🔵 Melhores Ofertas
-                <span className="text-xs bg-blue-600 text-white px-2 py-0.5 rounded-full">
-                  {promoGames.length}
-                </span>
+            <section>
+              <h2 className="text-2xl font-bold mb-4 flex items-center gap-2 text-blue-200">
+                🔥 Melhores Descontos
+                <span className="text-xs bg-blue-500/20 text-blue-300 border border-blue-500/50 px-2 py-0.5 rounded-full">{promoGames.length}</span>
               </h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {promoGames.map(game => (
-                  <GameCard key={game.id} {...game} />
-                ))}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                {promoGames.map(game => <GameCard key={game.id} {...game} />)}
               </div>
-            </>
+            </section>
           )}
 
-          {/* MENSAGEM SE NÃO TIVER NADA */}
           {filtered.length === 0 && (
-            <div className="flex flex-col items-center justify-center mt-20 text-zinc-500">
-              <p className="text-lg">Nenhum jogo encontrado...</p>
-              <p className="text-sm">Tente atualizar a página.</p>
+            <div className="text-zinc-500 text-center mt-20 text-lg">
+              Nenhuma oferta encontrada para {filter}.
             </div>
           )}
         </div>
