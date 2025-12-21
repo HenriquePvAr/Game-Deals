@@ -4,56 +4,94 @@ import NodeCache from "node-cache";
 const router = Router();
 const cache = new NodeCache({ stdTTL: 600, deleteOnExpire: true });
 
-let CURRENT_DOLLAR_RATE = 6.15;
+let CURRENT_DOLLAR_RATE = 6.15; // Margem de segurança inicial
 
-// --- LISTA VIP (GARANTIA PARA JOGOS FAMOSOS BLOQUEADOS) ---
+// ==============================================================================
+// 1. LISTA VIP (SEGURANÇA MÁXIMA PARA JOGOS FAMOSOS BLOQUEADOS)
+// ==============================================================================
 const VIP_DB = {
-    "976310": { // MK11
+    // Mortal Kombat 11 (ID 976310)
+    "976310": {
         specs: {
-            minimum: "<strong>SO:</strong> Windows 7 / 10<br><strong>Proc:</strong> Intel Core i5-750 / AMD Phenom II X4 965<br><strong>Mem:</strong> 8 GB RAM<br><strong>Vídeo:</strong> GTX 670 / Radeon HD 7950",
-            recommended: "<strong>SO:</strong> Windows 10<br><strong>Proc:</strong> Intel Core i5-2300 / AMD FX-6300<br><strong>Mem:</strong> 8 GB RAM<br><strong>Vídeo:</strong> GTX 780 / Radeon R9 290"
+            minimum: "<strong>SO:</strong> Windows 7 / 10 (64-bit)<br><strong>Proc:</strong> Intel Core i5-750 / AMD Phenom II X4 965<br><strong>Mem:</strong> 8 GB RAM<br><strong>Vídeo:</strong> GTX 670 / Radeon HD 7950",
+            recommended: "<strong>SO:</strong> Windows 10 (64-bit)<br><strong>Proc:</strong> Intel Core i5-2300 / AMD FX-6300<br><strong>Mem:</strong> 8 GB RAM<br><strong>Vídeo:</strong> GTX 780 / Radeon R9 290"
         },
         price: { final_formatted: "R$ 22,99", initial_formatted: "R$ 229,99", discount_percent: 90 }
     },
-    "271590": { // GTA V
+    // GTA V (ID 271590)
+    "271590": {
         specs: {
-            minimum: "<strong>SO:</strong> Windows 10<br><strong>Proc:</strong> Core 2 Quad Q6600<br><strong>Vídeo:</strong> 9800 GT 1GB", 
-            recommended: "<strong>SO:</strong> Windows 10<br><strong>Proc:</strong> i5 3470<br><strong>Vídeo:</strong> GTX 660 2GB"
+            minimum: "<strong>SO:</strong> Windows 10 64 Bit<br><strong>Proc:</strong> Intel Core 2 Quad Q6600<br><strong>Vídeo:</strong> NVIDIA 9800 GT 1GB", 
+            recommended: "<strong>SO:</strong> Windows 10 64 Bit<br><strong>Proc:</strong> Intel Core i5 3470<br><strong>Vídeo:</strong> GTX 660 2GB"
         },
         price: { final_formatted: "R$ 38,63", initial_formatted: "R$ 109,89", discount_percent: 63 }
+    },
+    // Red Dead Redemption 2
+    "1174180": {
+        specs: { minimum: "<strong>SO:</strong> Windows 10<br><strong>Proc:</strong> i5-2500K / AMD FX-6300<br><strong>Vídeo:</strong> GTX 770 2GB", recommended: "<strong>SO:</strong> Windows 10<br><strong>Proc:</strong> i7-4770K / Ryzen 5 1500X<br><strong>Vídeo:</strong> GTX 1060 6GB" },
+        price: { final_formatted: "R$ 98,96", initial_formatted: "R$ 299,90", discount_percent: 67 }
+    },
+    // Cyberpunk 2077
+    "1091500": {
+        specs: { minimum: "<strong>SO:</strong> Windows 10<br><strong>Proc:</strong> Core i7-6700 / Ryzen 5 1600<br><strong>Vídeo:</strong> GTX 1060 6GB", recommended: "<strong>SO:</strong> Windows 10<br><strong>Proc:</strong> Core i7-12700 / Ryzen 7 7800X3D<br><strong>Vídeo:</strong> RTX 2060" },
+        price: { final_formatted: "R$ 99,95", initial_formatted: "R$ 199,90", discount_percent: 50 }
     }
 };
 
+// Cookies para simular adulto (Bypass Age Gate)
 const STEAM_HEADERS = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
   "Cookie": "birthtime=283996801; lastagecheckage=1-0-1979; wants_mature_content=1; steamCountry=BR%7C00000000000000000000000000000000"
 };
 
+// ==============================================================================
+// 2. FUNÇÕES AUXILIARES
+// ==============================================================================
+
+// Atualiza Cotação do Dólar
 const updateExchangeRate = async () => {
     try {
         const res = await fetch("https://economia.awesomeapi.com.br/json/last/USD-BRL");
         const data = await res.json();
-        if (data.USDBRL?.bid) CURRENT_DOLLAR_RATE = parseFloat(data.USDBRL.bid);
-    } catch (e) {}
+        if (data.USDBRL?.bid) {
+            CURRENT_DOLLAR_RATE = parseFloat(data.USDBRL.bid);
+            console.log(`💲 Dólar Atualizado: R$ ${CURRENT_DOLLAR_RATE.toFixed(2)}`);
+        }
+    } catch (e) { console.error("Erro ao atualizar dólar"); }
 };
 updateExchangeRate();
-setInterval(updateExchangeRate, 1000 * 60 * 30);
+setInterval(updateExchangeRate, 1000 * 60 * 30); // A cada 30 min
 
+// Formata e Converte Preços
+const parsePriceFallback = (price, isUsd = false) => {
+  if (!price || price === "N/A" || price === "0") return 0;
+  if (typeof price === "number") return isUsd ? price * CURRENT_DOLLAR_RATE : price;
+  let clean = String(price).replace(/[R$\s]/g, "").replace(",", "."); 
+  const val = parseFloat(clean);
+  return isNaN(val) ? 0 : (isUsd ? val * CURRENT_DOLLAR_RATE : val);
+};
+
+// Redireciona nomes comuns para IDs base
 const idOverrides = {
     "mortal kombat 11": "976310",
     "mortal kombat 11 ultimate": "976310",
     "grand theft auto v": "271590",
     "gta v": "271590",
     "red dead redemption 2": "1174180",
-    "cyberpunk 2077": "1091500"
+    "cyberpunk 2077": "1091500",
+    "witcher 3": "292030"
 };
 
-// --- SCRAPER (FALLBACK) ---
+// ==============================================================================
+// 3. LÓGICA DE DADOS DA STEAM (API + SCRAPER)
+// ==============================================================================
+
 const scrapeSteamPage = async (appID) => {
     try {
         const res = await fetch(`https://store.steampowered.com/app/${appID}/?cc=br&l=brazilian`, { headers: STEAM_HEADERS });
         const html = await res.text();
 
+        // Extrai Preço
         let priceData = null;
         const priceMatch = html.match(/data-price-final="(\d+)"/);
         if (priceMatch) {
@@ -61,12 +99,15 @@ const scrapeSteamPage = async (appID) => {
             priceData = { final_formatted: `R$ ${(val/100).toFixed(2).replace('.', ',')}`, initial_formatted: null, discount_percent: 0 };
         }
 
+        // Extrai Specs
         let minSpecs = "", recSpecs = "";
         const minMatch = html.match(/<div class="game_area_sys_req_leftCol"[^>]*>([\s\S]*?)<\/div>/) || html.match(/<div class="game_area_sys_req_full"[^>]*>([\s\S]*?)<\/div>/);
         const recMatch = html.match(/<div class="game_area_sys_req_rightCol"[^>]*>([\s\S]*?)<\/div>/);
+        
         if (minMatch) minSpecs = minMatch[1];
         if (recMatch) recSpecs = recMatch[1];
 
+        // Limpa Scripts
         const clean = (s) => s.replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gm, "");
 
         if (minSpecs || recSpecs || priceData) {
@@ -80,12 +121,11 @@ const scrapeSteamPage = async (appID) => {
     } catch (e) { return null; }
 };
 
-// --- GET DATA MESTRE ---
 const getSteamData = async (appID) => {
-    // 1. VIP LIST (Instantâneo para MK11/GTA)
+    // 1. VIP (Prioridade Total)
     if (VIP_DB[appID]) return { success: true, ...VIP_DB[appID] };
 
-    // 2. API OFICIAL (Rápida para jogos normais)
+    // 2. API Oficial
     try {
         const res = await fetch(`https://store.steampowered.com/api/appdetails?appids=${appID}&cc=br&l=brazilian`, { headers: STEAM_HEADERS });
         const data = await res.json();
@@ -98,14 +138,13 @@ const getSteamData = async (appID) => {
         }
     } catch (e) {}
 
-    // 3. SCRAPER (Última chance para jogos bloqueados ou bugados)
+    // 3. Scraper (Fallback)
     return await scrapeSteamPage(appID);
 };
 
-// --- BUSCAS (MELHORADAS) ---
+// Buscadores de ID
 const searchCheapShark = async (term) => {
     try {
-        // Busca exata primeiro
         const res = await fetch(`https://www.cheapshark.com/api/1.0/games?title=${encodeURIComponent(term)}&limit=1`);
         const data = await res.json();
         return data?.[0]?.steamAppID || null;
@@ -120,7 +159,11 @@ const searchSteamDirect = async (term) => {
     } catch (e) { return null; }
 };
 
-// --- ROTA SPECS ---
+// ==============================================================================
+// 4. ROTAS
+// ==============================================================================
+
+// Rota de Detalhes (Specs + Preço Real)
 router.get("/api/specs", async (req, res) => {
     const { name, steamAppID } = req.query;
     let targetID = steamAppID;
@@ -128,7 +171,7 @@ router.get("/api/specs", async (req, res) => {
     try {
         const lowerName = (name || "").toLowerCase();
 
-        // 1. Overrides
+        // Override
         for (const [key, id] of Object.entries(idOverrides)) {
             if (lowerName.includes(key)) {
                 targetID = id;
@@ -136,18 +179,13 @@ router.get("/api/specs", async (req, res) => {
             }
         }
 
-        // 2. Busca ID se não tiver (LÓGICA CORRIGIDA PARA INDIES)
+        // Busca ID
         if (!targetID && name) {
-            // Remove apenas tags como (Steam), mas MANTÉM OS ESPAÇOS e PONTUAÇÃO
-            const cleanName = lowerName
-                .replace(/giveaway|\(steam\)|\(pc\)|\(epic\)|ultimate|deluxe|gold|goty|edition/gi, "")
-                .trim();
-            
+            const cleanName = lowerName.replace(/giveaway|\(steam\)|\(pc\)|\(epic\)|ultimate|deluxe|gold|goty|edition/gi, "").trim();
             targetID = await searchCheapShark(cleanName);
             if (!targetID) targetID = await searchSteamDirect(cleanName);
         }
 
-        // 3. Pega dados
         if (targetID) {
             const result = await getSteamData(targetID);
             if (result) return res.json(result);
@@ -156,15 +194,7 @@ router.get("/api/specs", async (req, res) => {
     } catch (error) { res.json({ success: false }); }
 });
 
-// --- LISTAGEM (CÓDIGO PADRÃO - AUMENTADO) ---
-const parsePriceFallback = (price, isUsd = false) => {
-  if (!price || price === "N/A" || price === "0") return 0;
-  if (typeof price === "number") return isUsd ? price * CURRENT_DOLLAR_RATE : price;
-  let clean = String(price).replace(/[R$\s]/g, "").replace(",", "."); 
-  const val = parseFloat(clean);
-  return isNaN(val) ? 0 : (isUsd ? val * CURRENT_DOLLAR_RATE : val);
-};
-
+// Mapeamento para a Lista Principal (INCLUI NOTA E HISTÓRICO)
 const extractSteamID = (url) => url?.match(/\/app\/(\d+)/)?.[1] || null;
 
 const mapCheapSharkDeal = (game, storeName) => ({
@@ -176,12 +206,19 @@ const mapCheapSharkDeal = (game, storeName) => ({
     price: parsePriceFallback(game.salePrice, true),
     store: storeName,
     link: `https://www.cheapshark.com/redirect?dealID=${game.dealID}`,
-    expiryDate: game.lastChange ? new Date(game.lastChange * 1000).toISOString() : null
+    expiryDate: game.lastChange ? new Date(game.lastChange * 1000).toISOString() : null,
+    // Novos Campos:
+    metacritic: game.metacriticScore,
+    cheapest: game.cheapestPriceEver ? {
+        price: parsePriceFallback(game.cheapestPriceEver.price, true),
+        date: new Date(game.cheapestPriceEver.date * 1000).toLocaleDateString()
+    } : null
 });
 
+// Rota PC (Lista Gigante)
 router.get("/api/pc", async (req, res) => {
   try {
-    const cachedData = cache.get("pc_deals_v21_final");
+    const cachedData = cache.get("pc_deals_v23_complete");
     if (cachedData) return res.json(cachedData);
 
     const [steam, epic, xbox, giveaways] = await Promise.all([
@@ -197,15 +234,17 @@ router.get("/api/pc", async (req, res) => {
         ...xbox.map(g => mapCheapSharkDeal(g, "Xbox")),
         ...(Array.isArray(giveaways) ? giveaways.filter(g => g.platforms.toLowerCase().includes("steam")).slice(0, 15).map(g => ({
             id: String(g.id), steamAppID: extractSteamID(g.open_giveaway_url), title: g.title, image: g.image,
-            worth: parsePriceFallback(g.worth, true), price: 0, store: "Steam", link: g.open_giveaway_url, expiryDate: g.end_date === "N/A" ? null : g.end_date
+            worth: parsePriceFallback(g.worth, true), price: 0, store: "Steam", link: g.open_giveaway_url, expiryDate: g.end_date === "N/A" ? null : g.end_date,
+            metacritic: null, cheapest: null
         })) : [])
     ];
 
-    cache.set("pc_deals_v21_final", finalData, 300);
+    cache.set("pc_deals_v23_complete", finalData, 300);
     res.json(finalData);
   } catch (e) { res.json([]); }
 });
 
+// Rota Epic Free
 router.get("/api/epic-free", async (req, res) => {
      try {
         const cached = cache.get("epic_free"); if (cached) return res.json(cached);
@@ -227,6 +266,7 @@ router.get("/api/epic-free", async (req, res) => {
       } catch (e) { res.json([]); }
 });
 
+// Rota Console
 router.get("/api/console", async (req, res) => {
     try {
         const cached = cache.get("console_deals"); if (cached) return res.json(cached);
