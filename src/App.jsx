@@ -1,9 +1,10 @@
 import { useEffect, useState, useRef } from "react";
 import GameCard from "./components/GameCard";
 import GameModal from "./components/GameModal";
-import SkeletonCard from "./components/SkeletonCard"; // Importando o Skeleton
+import SkeletonCard from "./components/SkeletonCard";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3333";
+// URL back
+const API_URL = "https://game-deals-wy16.onrender.com";
 
 // Ícones (Imagens PNG/SVG externas)
 const ICONS = {

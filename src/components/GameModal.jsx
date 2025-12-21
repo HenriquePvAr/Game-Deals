@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3333";
+// URL back
+const API_URL = "https://game-deals-wy16.onrender.com";
 
 export default function GameModal({ game, onClose }) {
   const [specs, setSpecs] = useState(null);
   const [realPrice, setRealPrice] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // Fecha o modal com a tecla ESC
+  // Fecha com ESC
   useEffect(() => {
     if (!game) return;
     const handleEsc = (e) => e.key === "Escape" && onClose();
@@ -15,7 +16,7 @@ export default function GameModal({ game, onClose }) {
     return () => window.removeEventListener("keydown", handleEsc);
   }, [onClose, game]);
 
-  // Busca detalhes (Specs e Preço Real)
+  // Busca detalhes ao abrir
   useEffect(() => {
     if (!game) return;
 
@@ -23,7 +24,7 @@ export default function GameModal({ game, onClose }) {
     setRealPrice(null);
     setLoading(true);
 
-    // Consoles não têm specs de PC, então não buscamos
+    // Consoles não têm specs de PC
     if (game.store === "PlayStation" || game.store === "Xbox") {
         setLoading(false);
         return;
@@ -32,7 +33,6 @@ export default function GameModal({ game, onClose }) {
     const fetchDetails = async () => {
         try {
             let url = `${API_URL}/api/specs?`;
-            // Tenta buscar por ID da Steam se tiver, senão vai pelo nome
             url += game.steamAppID ? `steamAppID=${game.steamAppID}` : `name=${encodeURIComponent(game.title)}`;
 
             const res = await fetch(url);
@@ -60,8 +60,7 @@ export default function GameModal({ game, onClose }) {
 
   if (!game) return null;
 
-  // --- LÓGICA DE PREÇOS ---
-  // Prioridade: Preço Real (Steam BR) > Preço Convertido (CheapShark) > Texto Padrão
+  // Lógica de Preço (Prioriza Steam BR > CheapShark Convertido > Texto Padrão)
   const finalPrice = realPrice 
       ? realPrice.final 
       : (game.isFree ? "GRÁTIS" : game.currentPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }));
@@ -72,21 +71,20 @@ export default function GameModal({ game, onClose }) {
       
   const discountPercent = realPrice ? realPrice.discount : game.discount;
 
-  // Preço Histórico (Menor de todos os tempos)
   const cheapestPrice = game.cheapest 
     ? `R$ ${game.cheapest.price.toFixed(2).replace('.', ',')}` 
     : null;
 
-  const isConsole = game.store === "PlayStation" || game.store === "Xbox";
   const showSpecs = !loading && specs;
+  const isConsole = game.store === "PlayStation" || game.store === "Xbox";
 
-  // --- MENSAGEM DE ERRO/AVISO INTELIGENTE ---
+  // Mensagem caso não tenha requisitos (Comum em jogos +18 ou pacotes)
   const renderNoSpecsMessage = () => {
       if (isConsole) return ">> INCOMPATÍVEL: PLATAFORMA CONSOLE";
       
       return (
           <div className="flex flex-col gap-2 animate-pulse">
-              <span className="text-yellow-500 font-bold tracking-wider text-[10px]" >  DADOS RESTRITOS OU INDISPONÍVEIS</span>
+              <span className="text-yellow-500 font-bold tracking-wider text-[10px]"> DADOS RESTRITOS OU INDISPONÍVEIS</span>
               <p className="text-gray-500 text-[10px] leading-relaxed">
                   Os requisitos não foram carregados automaticamente. 
                   Isso é comum em jogos <strong>Adult Only (+18)</strong>, 
@@ -106,23 +104,16 @@ export default function GameModal({ game, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 font-sans">
-      {/* Overlay Escuro */}
       <div className="absolute inset-0 bg-black/95 backdrop-blur-md transition-opacity" onClick={onClose} />
       
-      {/* Janela Principal */}
       <div className="relative w-full max-w-2xl bg-[#0a0a0a] border border-cyan-900/50 shadow-[0_0_60px_rgba(6,182,212,0.15)] flex flex-col max-h-[90vh] overflow-hidden rounded-sm">
         
-        {/* === HEADER (IMAGEM) === */}
+        {/* HEADER */}
         <div className="relative h-60 w-full shrink-0 group">
           <img src={game.imageUrl} alt={game.title} className="w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-opacity duration-500" />
           <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/50 to-transparent" />
           
-          <button 
-            onClick={onClose} 
-            className="absolute top-4 right-4 bg-black/60 text-white border border-white/20 hover:bg-red-500 hover:border-red-500 hover:text-white transition-all w-8 h-8 flex items-center justify-center rounded-full z-20"
-          >
-            ✕
-          </button>
+          <button onClick={onClose} className="absolute top-4 right-4 bg-black/60 text-white border border-white/20 hover:bg-red-500 hover:border-red-500 hover:text-white transition-all w-8 h-8 flex items-center justify-center rounded-full z-20">✕</button>
           
           <div className="absolute bottom-6 left-6 right-6">
              <div className="inline-flex items-center gap-2 mb-2">
@@ -141,14 +132,13 @@ export default function GameModal({ game, onClose }) {
           </div>
         </div>
 
-        {/* === CORPO DO MODAL === */}
+        {/* CORPO */}
         <div className="p-8 overflow-y-auto custom-scrollbar bg-[#0a0a0a] relative">
-            {/* Efeito de luz ambiente */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/5 blur-[80px] pointer-events-none" />
 
             <div className="flex flex-col md:flex-row gap-8">
                 
-                {/* --- COLUNA ESQUERDA: PREÇO E AÇÃO --- */}
+                {/* PREÇO E AÇÃO */}
                 <div className="flex-1 space-y-6 shrink-0 min-w-[240px]">
                     <div className="border border-white/10 p-5 bg-white/5 relative hover:border-cyan-500/30 transition-all duration-300">
                         <p className="text-gray-500 text-[10px] font-bold uppercase tracking-[0.2em] mb-1">VALOR ATUAL</p>
@@ -171,7 +161,7 @@ export default function GameModal({ game, onClose }) {
                             </div>
                         )}
 
-                        {/* MENOR PREÇO HISTÓRICO */}
+                        {/* HISTÓRICO DE PREÇO */}
                         {cheapestPrice && (
                             <div className="mt-5 pt-4 border-t border-white/10">
                                 <p className="text-[9px] text-purple-400 uppercase tracking-widest mb-1 flex items-center gap-1">
@@ -200,7 +190,7 @@ export default function GameModal({ game, onClose }) {
                     )}
                 </div>
 
-                {/* --- COLUNA DIREITA: REQUISITOS --- */}
+                {/* REQUISITOS */}
                 <div className="flex-1 text-sm text-gray-400 border-t md:border-t-0 md:border-l border-white/10 pt-6 md:pt-0 md:pl-8">
                     <h3 className="text-white font-bold mb-4 uppercase tracking-[0.1em] text-xs border-b border-white/10 pb-2 flex items-center justify-between">
                         <span>DADOS DO SISTEMA</span>
@@ -209,13 +199,7 @@ export default function GameModal({ game, onClose }) {
 
                     {showSpecs ? (
                         <div className="space-y-5 font-mono text-xs leading-relaxed animate-in fade-in duration-500">
-                             {/* Estilos para formatar o HTML que vem da Steam */}
-                             <style>{`
-                                .specs-content strong { color: #a5f3fc; font-weight: 700; text-transform: uppercase; } 
-                                .specs-content ul { list-style: none; padding: 0; margin: 0; } 
-                                .specs-content li { margin-bottom: 4px; } 
-                                .specs-content br { display: none; }
-                             `}</style>
+                             <style>{`.specs-content strong { color: #a5f3fc; font-weight: 700; text-transform: uppercase; } .specs-content ul { list-style: none; padding: 0; margin: 0; } .specs-content li { margin-bottom: 4px; } .specs-content br { display: none; }`}</style>
 
                              {specs.minimum && (
                                 <div className="specs-content">
