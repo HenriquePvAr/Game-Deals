@@ -51,14 +51,18 @@ cd Game-Deals
 Passo 2: Configurar o Backend
 
 cd backend
+
 npm install
+
 npm start
 
 Passo 3: Configurar o Frontend
 Abra um novo terminal na pasta raiz do projeto:
 # Caso esteja na pasta backend
 cd ..
+
 npm install
+
 npm run dev
 
 🛡️ API e Endpoints
