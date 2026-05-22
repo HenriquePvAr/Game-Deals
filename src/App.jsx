@@ -144,18 +144,23 @@ export default function App() {
   
   // PAGINAÇÃO
   const [visibleCount, setVisibleCount] = useState(24);
+  const [showFilters, setShowFilters] = useState(false);
 
   const customStyles = `
-    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@400;500;600;700&display=swap');
     .font-cyber { font-family: 'Orbitron', sans-serif; }
+    .font-body { font-family: 'Inter', sans-serif; }
     .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-    .custom-scrollbar::-webkit-scrollbar-track { background: #000; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background: #06b6d4; border: 1px solid #000; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #0a0a0a; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #66c0f4, #9333ea); border-radius: 3px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, #85d5ff, #a855f7); }
     .custom-scrollbar-hide::-webkit-scrollbar { display: none; }
     .glitch { position: relative; color: white; text-shadow: 2px 2px 0px #06b6d4, -2px -2px 0px #9333ea; animation: glitch-anim 2s infinite linear alternate-reverse; }
     @keyframes glitch-anim { 0% { text-shadow: 2px 2px 0px #06b6d4, -2px -2px 0px #9333ea; } 25% { text-shadow: -2px 2px 0px #06b6d4, 2px -2px 0px #9333ea; } 50% { text-shadow: 2px -2px 0px #06b6d4, -2px 2px 0px #9333ea; } 75% { text-shadow: -2px -2px 0px #06b6d4, 2px 2px 0px #9333ea; } 100% { text-shadow: 2px 2px 0px #06b6d4, -2px -2px 0px #9333ea; } }
-    .cyber-grid { background-size: 40px 40px; background-image: linear-gradient(to right, rgba(147, 51, 234, 0.15) 1px, transparent 1px), linear-gradient(to bottom, rgba(147, 51, 234, 0.15) 1px, transparent 1px); transform: perspective(500px) rotateX(60deg); transform-origin: center top; animation: grid-move 20s linear infinite; }
-    @keyframes grid-move { 0% { background-position: 0 0; } 100% { background-position: 0 1000px; } }
+    .cyber-grid { background-size: 40px 40px; background-image: linear-gradient(to right, rgba(147, 51, 234, 0.1) 1px, transparent 1px), linear-gradient(to bottom, rgba(147, 51, 234, 0.1) 1px, transparent 1px); }
+    @keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+    @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-10px); } }
+    .float-animation { animation: float 3s ease-in-out infinite; }
   `;
 
   useEffect(() => { localStorage.setItem('wishlist', JSON.stringify(wishlist)); }, [wishlist]);
@@ -227,85 +232,259 @@ export default function App() {
   if (error) return ( <div className="fixed inset-0 bg-black flex items-center justify-center p-4 font-cyber"><div className="text-center"><h2 className="text-5xl font-black text-red-500 mb-4 glitch">SYSTEM FAILURE</h2><button onClick={() => window.location.reload()} className="px-8 py-3 border border-red-500 text-red-500 font-bold hover:bg-red-500 hover:text-black transition-all">REBOOT</button></div></div> );
 
   return (
-    <div className="fixed inset-0 bg-black text-white p-4 overflow-hidden font-sans selection:bg-cyan-500/30">
+    <div className="fixed inset-0 bg-[#030305] text-white overflow-hidden font-body selection:bg-cyan-500/30">
       <style>{customStyles}</style>
-      <div className="absolute inset-0 bg-gradient-to-b from-[#050505] to-[#1a0b2e] z-0 pointer-events-none"></div>
-      <div className="absolute bottom-0 left-0 right-0 h-[60%] cyber-grid opacity-30 pointer-events-none z-0"></div>
-      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-5 pointer-events-none mix-blend-overlay z-0"></div>
+      
+      {/* Background com camadas */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#0a0a0f] via-[#0f0a1a] to-[#050510] z-0"></div>
+      <div className="absolute bottom-0 left-0 right-0 h-[50%] cyber-grid opacity-20 pointer-events-none z-0"></div>
+      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] pointer-events-none mix-blend-overlay z-0"></div>
+      
+      {/* Header Fixo */}
+      <header className="relative z-40 sticky top-0 backdrop-blur-xl bg-[#030305]/80 border-b border-white/5">
+        <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
+            
+            {/* Logo e Refresh */}
+            <div className="flex items-center gap-4 w-full lg:w-auto justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+                  <SvgIcons.Gamepad />
+                </div>
+                <div>
+                  <h1 className="text-2xl md:text-3xl font-black font-cyber tracking-tight bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+                    DEALS HUB
+                  </h1>
+                  <p className="text-[10px] text-gray-500 uppercase tracking-widest hidden sm:block">Game Deals Tracker</p>
+                </div>
+              </div>
+              <button 
+                onClick={loadData} 
+                disabled={loading} 
+                className="lg:hidden p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-all"
+              >
+                <SvgIcons.Refresh className={`w-5 h-5 ${loading ? 'animate-spin text-cyan-400' : 'text-gray-400'}`} />
+              </button>
+            </div>
 
-      <header className="relative z-40 mb-6 flex flex-col xl:flex-row items-center justify-between gap-6 p-4">
-        <div className="flex items-center gap-6 w-full xl:w-auto justify-between xl:justify-start">
-            <h1 className="text-3xl md:text-5xl font-black font-cyber italic tracking-wider glitch select-none cursor-default truncate">DEALS HUB</h1>
-            <button onClick={loadData} disabled={loading} className="group p-2 border border-white/20 hover:border-cyan-400 rounded-none transition-all"><SvgIcons.Refresh className={`w-5 h-5 text-gray-400 group-hover:text-cyan-400 transition-colors ${loading ? 'animate-spin' : ''}`} /></button>
-        </div>
-        <div className="w-full max-w-lg relative group z-50">
-            <input type="text" placeholder="BUSCAR JOGO..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-black/60 border border-purple-500/30 text-cyan-400 p-3 pl-10 focus:outline-none focus:border-cyan-400 focus:shadow-[0_0_15px_rgba(6,182,212,0.4)] transition-all font-mono placeholder-gray-600 uppercase text-sm" />
-            <div className="absolute left-3 top-3.5 text-gray-500 group-focus-within:text-cyan-400"><SvgIcons.Search /></div>
-            {searchTerm && (<button onClick={() => setSearchTerm("")} className="absolute right-3 top-3 text-gray-600 hover:text-white">✕</button>)}
-        </div>
-        <div className="flex gap-4 w-full xl:w-auto z-40 justify-end">
-            <CyberSortDropdown value={sortBy} onChange={setSortBy} />
-            <CyberStoreDropdown value={filter} onChange={setFilter} />
+            {/* Barra de Search */}
+            <div className="w-full max-w-xl relative group">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <SvgIcons.Search />
+              </div>
+              <input 
+                type="text" 
+                placeholder="Buscar jogos..." 
+                value={searchTerm} 
+                onChange={(e) => setSearchTerm(e.target.value)} 
+                className="w-full bg-white/[0.03] border border-white/10 text-white rounded-xl py-3 pl-11 pr-10 focus:outline-none focus:border-cyan-500/50 focus:ring-2 focus:ring-cyan-500/20 transition-all duration-300 placeholder:text-gray-600 text-sm"
+              />
+              {searchTerm && (
+                <button 
+                  onClick={() => setSearchTerm("")} 
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-white/10 text-gray-500 hover:text-white transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
+
+            {/* Filtros Desktop */}
+            <div className="hidden lg:flex items-center gap-3">
+              <CyberSortDropdown value={sortBy} onChange={setSortBy} />
+              <CyberStoreDropdown value={filter} onChange={setFilter} />
+              <button 
+                onClick={loadData} 
+                disabled={loading} 
+                className="p-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 transition-all group"
+                title="Atualizar"
+              >
+                <SvgIcons.Refresh className={`w-5 h-5 ${loading ? 'animate-spin text-cyan-400' : 'text-gray-400 group-hover:text-cyan-400'} transition-colors`} />
+              </button>
+            </div>
+
+            {/* Toggle Filtros Mobile */}
+            <button 
+              onClick={() => setShowFilters(!showFilters)}
+              className="lg:hidden p-3 rounded-xl bg-white/[0.03] border border-white/10 text-gray-400"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Filtros Mobile Dropdown */}
+          {showFilters && (
+            <div className="lg:hidden mt-4 pt-4 border-t border-white/10 flex flex-col gap-3 animate-in slide-in-from-top-2 duration-200">
+              <CyberSortDropdown value={sortBy} onChange={setSortBy} />
+              <CyberStoreDropdown value={filter} onChange={setFilter} />
+            </div>
+          )}
         </div>
       </header>
 
       <GameModal game={selectedGame} onClose={() => setSelectedGame(null)} />
 
-      {loading ? (
-        // === SKELETON LOADING (NOVO) ===
-        <div className="relative z-10 h-[calc(100%-8rem)] pb-20 pr-2 custom-scrollbar overflow-hidden">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 mt-8">
-                {Array.from({ length: 15 }).map((_, i) => (<SkeletonCard key={i} />))}
-            </div>
-            <p className="font-cyber text-cyan-900 tracking-[0.5em] animate-pulse text-xs text-center mt-8">ESTABELECENDO CONEXÃO...</p>
-        </div>
-      ) : (
-        <div className="relative z-10 overflow-y-auto h-[calc(100%-8rem)] pb-20 pr-2 custom-scrollbar">
-          <div className="mb-4 text-xs font-cyber text-gray-500 tracking-widest text-right px-2">SCAN COMPLETE: {processedGames.length} UNITS FOUND</div>
-
-          {freeGames.length > 0 && (
-            <section className="mb-12">
-              <div className="flex items-center gap-4 mb-6 border-b border-purple-500/30 pb-2"><h2 className="text-2xl font-bold font-cyber text-purple-400 tracking-widest">FREE ACCESS</h2></div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-                {freeGames.map(game => (<GameCard key={game.id} {...game} store={game.store} onClick={() => setSelectedGame(game)} isWishlisted={wishlist.includes(game.id)} onToggleWishlist={() => toggleWishlist(game.id)} />))}
-              </div>
-            </section>
-          )}
-
-          {promoGames.length > 0 && (
-            <section className="mb-8">
-               <div className="flex items-center gap-4 mb-6 border-b border-cyan-500/30 pb-2"><h2 className="text-2xl font-bold font-cyber text-cyan-400 tracking-widest">DISCOUNTS</h2></div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-                 {visiblePromoGames.map(game => (<GameCard key={game.id} {...game} store={game.store} onClick={() => setSelectedGame(game)} isWishlisted={wishlist.includes(game.id)} onToggleWishlist={() => toggleWishlist(game.id)} />))}
-              </div>
-              
-              {/* BOTÃO CARREGAR MAIS */}
-              {visibleCount < promoGames.length && (
-                  <div className="flex justify-center mt-12 mb-8">
-                      <button onClick={() => setVisibleCount(prev => prev + 24)} className="group relative px-8 py-3 bg-cyan-900/20 border border-cyan-500/50 text-cyan-400 font-bold font-cyber tracking-widest hover:bg-cyan-500 hover:text-black hover:border-cyan-400 transition-all duration-300">
-                          <span className="relative z-10 flex items-center gap-2">CARREGAR MAIS (+24) <svg className="w-4 h-4 group-hover:translate-y-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg></span>
-                      </button>
-                  </div>
-              )}
-            </section>
-          )}
+      {/* Conteúdo Principal */}
+      <main className="relative z-10 h-[calc(100vh-5rem)] overflow-y-auto custom-scrollbar">
+        <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
           
-          <footer className="border-t border-white/10 mt-12 pt-8 pb-8 text-center">
-              <p className="text-gray-500 text-xs font-mono mb-2">PROJECT: GAME_DEALS_HUB // V.2.0.4</p>
-              <div className="flex justify-center items-center gap-2 text-gray-400 hover:text-white transition-colors">
-                  <span className="text-sm font-bold">DEVELOPED BY HENRIQUE</span>
-                  <a href="https://github.com" target="_blank" rel="noreferrer" className="hover:text-cyan-400 transition-colors"><SvgIcons.Github /></a>
+          {loading ? (
+            // Skeleton Loading
+            <div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 lg:gap-6">
+                {Array.from({ length: 15 }).map((_, i) => (<SkeletonCard key={i} />))}
               </div>
-          </footer>
+              <div className="flex items-center justify-center gap-3 mt-12">
+                <div className="w-2 h-2 bg-cyan-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                <div className="w-2 h-2 bg-pink-500 rounded-full animate-bounce"></div>
+              </div>
+              <p className="text-center text-xs text-gray-600 font-mono mt-4 uppercase tracking-widest">Carregando ofertas...</p>
+            </div>
+          ) : (
+            <>
+              {/* Stats Bar */}
+              <div className="flex flex-wrap items-center justify-between gap-4 mb-8 pb-4 border-b border-white/5">
+                <div className="flex items-center gap-6 text-xs font-mono text-gray-500">
+                  <span className="flex items-center gap-2">
+                    <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                    {processedGames.length} jogos encontrados
+                  </span>
+                  {freeGames.length > 0 && (
+                    <span className="flex items-center gap-2 text-purple-400">
+                      <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
+                      {freeGames.length} grátis
+                    </span>
+                  )}
+                </div>
+                {(filter !== "Todos" || searchTerm) && (
+                  <button 
+                    onClick={() => { setFilter("Todos"); setSearchTerm(""); }}
+                    className="text-xs text-cyan-400 hover:text-cyan-300 underline underline-offset-4"
+                  >
+                    Limpar filtros
+                  </button>
+                )}
+              </div>
 
-          {processedGames.length === 0 && (
-             <div className="flex flex-col items-center justify-center mt-32 text-gray-600 font-cyber space-y-4">
-                 <p className="text-xl tracking-widest border border-gray-700 px-6 py-4 bg-black/50">NO SIGNAL DETECTED</p>
-                 {searchTerm && <p className="text-sm text-cyan-600">Nenhum resultado para "{searchTerm}"</p>}
-             </div>
+              {/* Jogos Grátis */}
+              {freeGames.length > 0 && (
+                <section className="mb-12">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-1 h-8 bg-gradient-to-b from-purple-500 to-pink-500 rounded-full"></div>
+                      <h2 className="text-xl lg:text-2xl font-bold font-cyber text-white tracking-tight">
+                        <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">FREE GAMES</span>
+                      </h2>
+                      <span className="px-2 py-0.5 bg-purple-500/20 border border-purple-500/30 text-purple-300 text-xs font-bold rounded-full">
+                        {freeGames.length}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 lg:gap-6">
+                    {freeGames.map(game => (
+                      <GameCard 
+                        key={game.id} 
+                        {...game} 
+                        store={game.store} 
+                        onClick={() => setSelectedGame(game)} 
+                        isWishlisted={wishlist.includes(game.id)} 
+                        onToggleWishlist={() => toggleWishlist(game.id)} 
+                      />
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {/* Promoções */}
+              {promoGames.length > 0 && (
+                <section>
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-1 h-8 bg-gradient-to-b from-cyan-500 to-blue-500 rounded-full"></div>
+                      <h2 className="text-xl lg:text-2xl font-bold font-cyber text-white tracking-tight">
+                        <span className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">DISCOUNTS</span>
+                      </h2>
+                      <span className="px-2 py-0.5 bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 text-xs font-bold rounded-full">
+                        {promoGames.length}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 lg:gap-6">
+                    {visiblePromoGames.map(game => (
+                      <GameCard 
+                        key={game.id} 
+                        {...game} 
+                        store={game.store} 
+                        onClick={() => setSelectedGame(game)} 
+                        isWishlisted={wishlist.includes(game.id)} 
+                        onToggleWishlist={() => toggleWishlist(game.id)} 
+                      />
+                    ))}
+                  </div>
+
+                  {/* Load More Button */}
+                  {visibleCount < promoGames.length && (
+                    <div className="flex justify-center mt-12">
+                      <button 
+                        onClick={() => setVisibleCount(prev => prev + 24)} 
+                        className="group relative px-8 py-4 bg-gradient-to-r from-cyan-600/20 to-purple-600/20 border border-cyan-500/30 rounded-xl text-cyan-400 font-semibold tracking-wide hover:from-cyan-600/30 hover:to-purple-600/30 hover:border-cyan-400 hover:shadow-lg hover:shadow-cyan-500/20 transition-all duration-300"
+                      >
+                        <span className="relative z-10 flex items-center gap-3">
+                          Carregar Mais (+24)
+                          <svg className="w-5 h-5 group-hover:translate-y-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </span>
+                      </button>
+                    </div>
+                  )}
+                </section>
+              )}
+
+              {/* Footer */}
+              <footer className="border-t border-white/5 mt-16 pt-8 pb-8">
+                <div className="flex flex-col items-center gap-4 text-center">
+                  <p className="text-gray-600 text-xs font-mono">GAME_DEALS_HUB v2.1.0</p>
+                  <div className="flex items-center gap-2 text-gray-500 hover:text-white transition-colors">
+                    <span className="text-sm font-medium">Developed by Henrique</span>
+                    <a href="https://github.com" target="_blank" rel="noreferrer" className="p-2 rounded-lg hover:bg-white/5 transition-colors">
+                      <SvgIcons.Github />
+                    </a>
+                  </div>
+                </div>
+              </footer>
+
+              {/* Empty State */}
+              {processedGames.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-32 text-center">
+                  <div className="w-20 h-20 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-6">
+                    <SvgIcons.Search />
+                  </div>
+                  <p className="text-xl font-semibold text-gray-400 mb-2">Nenhum jogo encontrado</p>
+                  {searchTerm && (
+                    <p className="text-sm text-gray-600 max-w-md">
+                      Não encontramos resultados para "<span className="text-cyan-400">{searchTerm}</span>". Tente buscar por outro termo.
+                    </p>
+                  )}
+                  {(filter !== "Todos" || searchTerm) && (
+                    <button 
+                      onClick={() => { setFilter("Todos"); setSearchTerm(""); }}
+                      className="mt-6 px-6 py-3 bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 rounded-xl hover:bg-cyan-500/30 transition-all font-medium"
+                    >
+                      Limpar filtros
+                    </button>
+                  )}
+                </div>
+              )}
+            </>
           )}
         </div>
-      )}
+      </main>
     </div>
   );
 }
